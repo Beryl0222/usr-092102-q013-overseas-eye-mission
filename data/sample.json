@@ -1,0 +1,9 @@
+{
+  "event_id": "092102-013-sample-001",
+  "event_type": "SCREENING_RECEIVED",
+  "aggregate_type": "mission_patient",
+  "aggregate_id": "overseas_eye_mission-001",
+  "occurred_at": "2026-09-20T12:00:00+08:00",
+  "version": 1,
+  "summary": "海外光明行诊疗接力领域样例"
+}
