@@ -1,18 +1,33 @@
 # 海外光明行诊疗接力
 
-本仓库保存海外光明行诊疗接力的领域词汇、事件约定与基础校验代码，便于各参与方在后续开发中统一对象身份和版本语义。
+斐济眼科行动的**诊疗接力后端**：以不可变领域事件串起「任务批次 → 多来源筛查与 AI 置信边界 → 医生复核与手术适应证 → 四通道优先级/例外 → 知情同意 → 排期与并发资源占用 → 实际治疗 → 当地交接/复查/异常升级 → 返程闭环」，让下一支医疗队能复盘每一次例外决定的完整责任链，而不是只看到一个成功故事。
 
 ## 目录
 
-- `contracts/domain.schema.json`：领域事件信封及稳定枚举。
-- `data/sample.json`：一条可用于联调的中文业务样例。
-- `src/`：事件基础字段校验。
-- `tests/`：领域资料的一致性检查。
+- `contracts/domain.schema.json`：领域事件信封与稳定枚举（21 类事件、7 类聚合）。
+- `docs/domain.md`：事件目录、标识规则、角色矩阵、最小资料白名单、闭环定义。
+- `src/`
+  - `events.py` / `validator.py`：信封常量与校验。
+  - `store.py`：只追加事件存储——聚合版本乐观并发、`event_id` 幂等重放、`occurred_at` 保留现场时间、`recorded_at` 记录补录时刻、跨聚合原子提交。
+  - `resources.py`：设备（单台超声乳化仪）/人员班次/耗材占用账本，从事件流重建。
+  - `mission.py`：命令服务，承载全部医学与公平性规则。
+  - `transfer.py`：跨境最小化导出与撤回语义。
+  - `projection.py` / `dashboard.py`：读模型、返程看板与例外追溯。
+- `examples/fiji_mission.py`：斐济行动端到端中文业务样例。
+- `tests/`：契约一致性与全部业务规则测试。
 
-当前核心对象为mission_patient、screening_evidence、treatment_slot、followup_handoff，已登记事件为SCREENING_RECEIVED、CLINICAL_REVIEWED、EXCEPTION_APPROVED、TREATMENT_COMPLETED、HANDOFF_ACCEPTED。这些资料只约束基础交换格式，具体业务服务需要在保持兼容的前提下继续建设。
+## 关键规则
+
+1. **AI 只辅助分流**：基层 AI 筛查必须带置信带与边界说明；`AI_TRIAGE_RECORDED` 永远只是建议，只有眼科医生 `CLINICAL_REVIEWED`（fit + 明确适应证）才能排期。
+2. **四通道分立确认**：常规（协调员）、医学紧急（医疗负责人）、无障碍（无障碍专员）、人道（项目方代表）；例外必须有依据与证据，申请人≠批准人，批准事件固化当时的资源快照。
+3. **资源并发一致**：一次排期在同一事务内预占设备、班次、耗材，时间窗重叠/班次外/库存不足则整体失败，不产生部分占用；治疗完成后预占转实耗。
+4. **断网补录**：保留 `occurred_at` 现场时间；同一 `event_id` 重放幂等（同载荷返回原事件、异载荷拒绝）；版本号冲突用乐观锁发现。
+5. **最小跨境交换**：治疗目的 12 个白名单字段；非治疗用途需单独同意，撤回后该通道关闭；诊疗与安全记录在撤回后保留、不可删除。
+6. **返程闭环**：每名术后患者必须有被本人接受的当地接手、复查安排与两级升级路径，未解决异常会阻止批次关闭；例外台账可回看「当时资源 → 医学意见 → 排期 → 治疗 → 复查结果」。
 
 ## 本地检查
 
 ```bash
-python3 -m unittest discover -s tests
+python3 -m unittest discover -s tests   # 26 项
+python3 -m examples.fiji_mission       # 端到端演示
 ```

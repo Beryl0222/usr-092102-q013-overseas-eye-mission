@@ -14,25 +14,45 @@
   "properties": {
     "event_id": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "事件唯一标识，亦为断网补录的幂等键；建议 {batch_id}-{seq:04d}"
     },
     "event_type": {
       "type": "string",
       "enum": [
+        "BATCH_REGISTERED",
         "SCREENING_RECEIVED",
+        "AI_TRIAGE_RECORDED",
         "CLINICAL_REVIEWED",
+        "PRIORITY_SET",
         "EXCEPTION_APPROVED",
+        "CONSENT_GIVEN",
+        "CONSENT_WITHDRAWN",
+        "SLOT_RESERVED",
+        "SLOT_RELEASED",
+        "SURGERY_SCHEDULED",
+        "SUPPLIES_CONSUMED",
         "TREATMENT_COMPLETED",
-        "HANDOFF_ACCEPTED"
+        "HANDOFF_ASSIGNED",
+        "HANDOFF_ACCEPTED",
+        "FOLLOWUP_SCHEDULED",
+        "FOLLOWUP_OUTCOME_RECORDED",
+        "ESCALATION_OPENED",
+        "ESCALATION_RESOLVED",
+        "DATA_EXPORTED",
+        "BATCH_CLOSED"
       ]
     },
     "aggregate_type": {
       "type": "string",
       "enum": [
+        "task_batch",
         "mission_patient",
         "screening_evidence",
         "treatment_slot",
-        "followup_handoff"
+        "resource",
+        "followup_handoff",
+        "data_transfer"
       ]
     },
     "aggregate_id": {
@@ -41,11 +61,31 @@
     },
     "occurred_at": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "description": "事件在现场实际发生时间；断网补录也必须保留该时间，而非补录时刻"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "事件进入系统的时间（补录时刻）；实时录入时与 occurred_at 相同"
     },
     "version": {
       "type": "integer",
-      "minimum": 1
+      "minimum": 1,
+      "description": "该事件在其聚合事件流中的版本号，从 1 起递增"
+    },
+    "batch_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "任务批次标识，如 fiji2026-0921"
+    },
+    "correlation_id": {
+      "type": "string",
+      "description": "跨聚合业务动作的关联标识，如一次排期同时占用设备/班次/耗材"
+    },
+    "causation_id": {
+      "type": "string",
+      "description": "触发本事件的上游事件 event_id"
     },
     "summary": {
       "type": "string",
